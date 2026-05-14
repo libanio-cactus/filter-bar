@@ -17,15 +17,21 @@ function FieldGroup({ label, children }: { label: string; children: React.ReactN
   )
 }
 
+function yesterdayStr() {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().split('T')[0]
+}
+
 export function HistoricalFields({ value, onChange }: HistoricalFieldsProps) {
-  const today = new Date().toISOString().split('T')[0]
+  const yesterday = yesterdayStr()
 
   return (
     <div className="flex items-end gap-3">
       <FieldGroup label="De">
         <DateInput
           value={value.startDate}
-          max={value.endDate || today}
+          max={value.endDate || yesterday}
           onChange={(v) => onChange({ ...value, startDate: v })}
         />
         <TimeInput
@@ -40,7 +46,7 @@ export function HistoricalFields({ value, onChange }: HistoricalFieldsProps) {
         <DateInput
           value={value.endDate}
           min={value.startDate}
-          max={today}
+          max={yesterday}
           onChange={(v) => onChange({ ...value, endDate: v })}
         />
         <TimeInput

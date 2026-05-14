@@ -11,10 +11,10 @@ interface RealtimeFieldsProps {
 }
 
 const PRESETS: { value: RealtimePreset; label: string }[] = [
-  { value: '30m', label: '30min' },
   { value: '1h', label: '1h' },
-  { value: '2h', label: '2h' },
   { value: '4h', label: '4h' },
+  { value: '8h', label: '8h' },
+  { value: '12h', label: '12h' },
   { value: 'hoje', label: 'Hoje' },
 ]
 
@@ -31,7 +31,11 @@ function calcRangeForPreset(preset: RealtimePreset): TimeRange {
   const now = new Date()
   const end = hhmm(now)
   if (preset === 'hoje') return { start: '00:00', end }
-  const minutes = preset === '30m' ? 30 : preset === '1h' ? 60 : preset === '2h' ? 120 : 240
+  const minutes =
+    preset === '1h' ? 60 :
+    preset === '4h' ? 240 :
+    preset === '8h' ? 480 :
+    720 // 12h
   const s = new Date(now.getTime() - minutes * 60 * 1000)
   return { start: hhmm(s), end }
 }
@@ -44,14 +48,11 @@ function validateCustomRange(range: TimeRange): ValidationError | null {
   const startMins = toMinutes(range.start)
   const endMins = toMinutes(range.end)
 
-  if (startMins >= currentMins) {
-    return { message: `O horário inicial não pode ser igual ou maior que o horário atual (${hhmm(now)})`, field: 'start' }
-  }
   if (endMins > currentMins) {
-    return { message: `O horário final não pode ser maior que o horário atual (${hhmm(now)}). Real time exibe dados de 00:00 até agora.`, field: 'end' }
+    return { message: `O horário final não pode ser maior que o horário atual (${hhmm(now)}). Real time exibe dados até agora.`, field: 'end' }
   }
-  if (startMins >= endMins) {
-    return { message: 'O horário inicial deve ser anterior ao horário final.', field: 'start' }
+  if (startMins === endMins) {
+    return { message: 'O horário inicial e final não podem ser iguais.', field: 'start' }
   }
   return null
 }
@@ -66,6 +67,10 @@ export function RealtimeFields({
   const isCustom = preset === 'custom'
   const error = isCustom ? validateCustomRange(customRange) : null
   const [tipDismissed, setTipDismissed] = useState(false)
+
+  const startIsYesterday = toMinutes(customRange.start) > toMinutes(customRange.end)
+  const startSuffix = startIsYesterday ? 'ontem' : 'hoje'
+  const endSuffix = 'hoje'
 
 
   useEffect(() => {
@@ -120,6 +125,7 @@ export function RealtimeFields({
                 active={isCustom}
                 error={isCustom && !!error}
                 onChange={(v) => handleTimeChange('start', v)}
+                suffix={startSuffix}
               />
               {isCustom && error?.field === 'start' && !tipDismissed && (
                 <ErrorTip message={error.message} onClose={() => setTipDismissed(true)} />
@@ -132,6 +138,7 @@ export function RealtimeFields({
                 active={isCustom}
                 error={isCustom && !!error}
                 onChange={(v) => handleTimeChange('end', v)}
+                suffix={endSuffix}
               />
               {isCustom && error?.field === 'end' && !tipDismissed && (
                 <ErrorTip message={error.message} onClose={() => setTipDismissed(true)} />

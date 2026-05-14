@@ -80,9 +80,10 @@ interface TimeInputProps {
   error?: boolean
   onChange: (v: string) => void
   active?: boolean
+  suffix?: string
 }
 
-export function TimeInput({ value, onChange, active, error }: TimeInputProps) {
+export function TimeInput({ value, onChange, active, error, suffix }: TimeInputProps) {
   const hiddenRef = useRef<HTMLInputElement>(null)
   const [display, setDisplay] = useState(value)
   const [focused, setFocused] = useState(false)
@@ -133,8 +134,14 @@ export function TimeInput({ value, onChange, active, error }: TimeInputProps) {
         onFocus={() => setFocused(true)}
         onBlur={handleBlur}
         className="bg-transparent text-sm font-medium outline-none"
-        style={{ color: '#F2F2F2', width: '3.5rem', cursor: 'text' }}
+        style={{ color: '#F2F2F2', width: suffix ? '2.5rem' : '3.5rem', cursor: 'text' }}
       />
+
+      {suffix && (
+        <span style={{ color: '#6B7280', fontSize: '11px', fontWeight: 500, marginLeft: '-2px' }}>
+          {suffix}
+        </span>
+      )}
 
       {/* hidden native picker — acionado pelo ícone */}
       <input

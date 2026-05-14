@@ -14,8 +14,10 @@ interface FilterBarProps {
   showExtraDivider?: boolean
 }
 
-function todayStr() {
-  return new Date().toISOString().split('T')[0]
+function yesterdayStr() {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().split('T')[0]
 }
 
 function hhmm(d: Date) {
@@ -28,13 +30,14 @@ function defaultCustomRange(): TimeRange {
 }
 
 function defaultHistoricalRange(): DateTimeRange {
-  return { startDate: todayStr(), startTime: '00:00', endDate: todayStr(), endTime: '23:59' }
+  const y = yesterdayStr()
+  return { startDate: y, startTime: '00:00', endDate: y, endTime: '23:59' }
 }
 
 export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0, showExtraDivider = true }: FilterBarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mode, setMode] = useState<FilterMode>('realtime')
-  const [realtimePreset, setRealtimePreset] = useState<RealtimePreset>('30m')
+  const [realtimePreset, setRealtimePreset] = useState<RealtimePreset>('1h')
   const [customRange, setCustomRange] = useState<TimeRange>(defaultCustomRange)
   const [historicalRange, setHistoricalRange] = useState<DateTimeRange>(defaultHistoricalRange)
   const [appliedCount, setAppliedCount] = useState(1)
@@ -49,7 +52,7 @@ export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0, showEx
   ) {
     let count = 1 + extra // intervalo de data/hora sempre ativo
     if (m === 'historical') count += 1
-    if (m === 'realtime' && preset !== '30m') count += 1
+    if (m === 'realtime' && preset !== '1h') count += 1
     return count
   }
 
@@ -66,11 +69,11 @@ export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0, showEx
 
   function handleClear() {
     setMode('realtime')
-    setRealtimePreset('2h')
+    setRealtimePreset('1h')
     setCustomRange(defaultCustomRange())
     setHistoricalRange(defaultHistoricalRange())
     setAppliedCount(0)
-    onFilter?.({ mode: 'realtime', realtimePreset: '30m', realtimeCustomRange: defaultCustomRange() })
+    onFilter?.({ mode: 'realtime', realtimePreset: '1h', realtimeCustomRange: defaultCustomRange() })
   }
 
   return (
