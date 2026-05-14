@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { FilterBarValue, FilterMode, RealtimePreset, TimeRange, DateTimeRange } from './types'
 import { ModeToggle } from './ModeToggle'
 import { RealtimeFields } from './RealtimeFields'
@@ -42,8 +42,20 @@ export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0, showEx
   const [historicalRange, setHistoricalRange] = useState<DateTimeRange>(defaultHistoricalRange)
   const [appliedCount, setAppliedCount] = useState(1)
   const [realtimeValid, setRealtimeValid] = useState(true)
+  const [dirty, setDirty] = useState(false)
 
-  const canApply = mode !== 'realtime' || realtimeValid
+  const canApply = dirty && (mode !== 'realtime' || realtimeValid)
+
+  const appliedExtraCount = useRef(extraFilterCount)
+  useEffect(() => {
+    if (extraFilterCount !== appliedExtraCount.current) {
+      setDirty(true)
+    }
+  }, [extraFilterCount])
+
+  function markDirty() {
+    setDirty(true)
+  }
 
   function calcCount(
     m: FilterMode,
@@ -64,6 +76,8 @@ export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0, showEx
         : { historicalRange }),
     }
     setAppliedCount(calcCount(mode, realtimePreset, extraFilterCount))
+    appliedExtraCount.current = extraFilterCount
+    setDirty(false)
     onFilter?.(value)
   }
 
@@ -73,6 +87,8 @@ export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0, showEx
     setCustomRange(defaultCustomRange())
     setHistoricalRange(defaultHistoricalRange())
     setAppliedCount(0)
+    appliedExtraCount.current = extraFilterCount
+    setDirty(false)
     onFilter?.({ mode: 'realtime', realtimePreset: '1h', realtimeCustomRange: defaultCustomRange() })
   }
 
@@ -171,19 +187,22 @@ export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0, showEx
       {!collapsed && (
         <div className="flex flex-col gap-3 px-4 py-3" style={{ backgroundColor: '#1A1C24' }}>
           <div className="flex flex-wrap items-end gap-x-4 gap-y-6">
-            <ModeToggle value={mode} onChange={setMode} />
+            <ModeToggle value={mode} onChange={(m) => { setMode(m); markDirty() }} />
             <div className="self-stretch w-px my-0.5" style={{ backgroundColor: '#2A2C38' }} />
 
             {mode === 'realtime' ? (
               <RealtimeFields
                 preset={realtimePreset}
                 customRange={customRange}
-                onPresetChange={setRealtimePreset}
-                onCustomRangeChange={setCustomRange}
+                onPresetChange={(p) => { setRealtimePreset(p); markDirty() }}
+                onCustomRangeChange={(r) => { setCustomRange(r); markDirty() }}
                 onValidationChange={setRealtimeValid}
               />
             ) : (
-              <HistoricalFields value={historicalRange} onChange={setHistoricalRange} />
+              <HistoricalFields
+                value={historicalRange}
+                onChange={(r) => { setHistoricalRange(r); markDirty() }}
+              />
             )}
 
             {extraFilters && (
