@@ -10,6 +10,8 @@ interface FilterBarProps {
   onFilter?: (value: FilterBarValue) => void
   /** Contagem de filtros extras aplicados — controlada pela tela pai */
   extraFilterCount?: number
+  /** Exibe o divider vertical entre pickers e filtros extras (default: true) */
+  showExtraDivider?: boolean
 }
 
 function todayStr() {
@@ -29,7 +31,7 @@ function defaultHistoricalRange(): DateTimeRange {
   return { startDate: todayStr(), startTime: '00:00', endDate: todayStr(), endTime: '23:59' }
 }
 
-export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0 }: FilterBarProps) {
+export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0, showExtraDivider = true }: FilterBarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mode, setMode] = useState<FilterMode>('realtime')
   const [realtimePreset, setRealtimePreset] = useState<RealtimePreset>('30m')
@@ -165,7 +167,7 @@ export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0 }: Filt
       {/* Corpo colapsável */}
       {!collapsed && (
         <div className="flex flex-col gap-3 px-4 py-3" style={{ backgroundColor: '#1A1C24' }}>
-          <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-6">
             <ModeToggle value={mode} onChange={setMode} />
             <div className="self-stretch w-px my-0.5" style={{ backgroundColor: '#2A2C38' }} />
 
@@ -183,8 +185,10 @@ export function FilterBar({ extraFilters, onFilter, extraFilterCount = 0 }: Filt
 
             {extraFilters && (
               <>
-                <div className="self-stretch w-px my-0.5" style={{ backgroundColor: '#2A2C38' }} />
-                <div className="flex items-end gap-3">{extraFilters}</div>
+                {showExtraDivider && (
+                  <div className="self-stretch w-px my-0.5" style={{ backgroundColor: '#2A2C38' }} />
+                )}
+                <div className="flex flex-wrap items-end gap-x-3 gap-y-6">{extraFilters}</div>
               </>
             )}
           </div>

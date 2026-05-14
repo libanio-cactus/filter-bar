@@ -25,6 +25,13 @@ export default function App() {
 
   // Exemplo 3
   const [pais, setPais] = useState('')
+  const [moeda, setMoeda] = useState('')
+  const [metodo, setMetodo] = useState('')
+  const [tipoUsuario, setTipoUsuario] = useState('')
+  const [kyc, setKyc] = useState('')
+  const [plataforma, setPlataforma] = useState('')
+  const [origem, setOrigem] = useState('')
+  const [tagVip, setTagVip] = useState('')
 
   return (
     <div className="min-h-screen p-8 flex flex-col gap-12" style={{ backgroundColor: '#16171D' }}>
@@ -65,17 +72,62 @@ export default function App() {
         />
       </Section>
 
-      <Section title="Exemplo 3 — Com filtros extras (ex: tela de Usuários)">
+      <Section title="Exemplo 3 — Com muitos filtros (quebra em múltiplas linhas)">
         <FilterBar
           onFilter={setLastResult}
-          extraFilterCount={countSelected(pais)}
+          showExtraDivider={false}
+          extraFilterCount={countSelected(pais, moeda, metodo, tipoUsuario, kyc, plataforma, origem, tagVip)}
           extraFilters={
-            <SelectField
-              label="País"
-              options={['Brasil', 'Portugal', 'Espanha', 'México']}
-              value={pais}
-              onChange={setPais}
-            />
+            <>
+              <SelectField
+                label="País"
+                options={['Brasil', 'Portugal', 'Espanha', 'México', 'Argentina', 'Chile']}
+                value={pais}
+                onChange={setPais}
+              />
+              <SelectField
+                label="Moeda"
+                options={['BRL', 'USD', 'EUR', 'MXN', 'ARS']}
+                value={moeda}
+                onChange={setMoeda}
+              />
+              <SelectField
+                label="Método"
+                options={['PIX', 'Boleto', 'Cartão', 'Crypto', 'Transferência']}
+                value={metodo}
+                onChange={setMetodo}
+              />
+              <SelectField
+                label="Tipo de usuário"
+                options={['Novo', 'Recorrente', 'VIP', 'Inativo']}
+                value={tipoUsuario}
+                onChange={setTipoUsuario}
+              />
+              <SelectField
+                label="KYC"
+                options={['Aprovado', 'Pendente', 'Recusado', 'Não enviado']}
+                value={kyc}
+                onChange={setKyc}
+              />
+              <SelectField
+                label="Plataforma"
+                options={['Web', 'iOS', 'Android', 'Mobile Web']}
+                value={plataforma}
+                onChange={setPlataforma}
+              />
+              <SelectField
+                label="Origem"
+                options={['Orgânico', 'Afiliado', 'Mídia paga', 'Indicação']}
+                value={origem}
+                onChange={setOrigem}
+              />
+              <SelectField
+                label="Tag VIP"
+                options={['Bronze', 'Prata', 'Ouro', 'Diamante']}
+                value={tagVip}
+                onChange={setTagVip}
+              />
+            </>
           }
         />
       </Section>
