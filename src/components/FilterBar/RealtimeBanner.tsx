@@ -24,7 +24,7 @@ export function RealtimeBanner() {
 
       <p className="text-sm" style={{ color: '#A89070' }}>
         <span style={{ color: '#F59E0B', fontWeight: 600 }}>Real time ativo: </span>
-        você pode exibir dados de <span style={{ color: '#F2F2F2', fontWeight: 600 }}>00:00</span> até o horário atual. Para consultas em datas anteriores, utilize o modo{' '}
+        você pode exibir dados das <span style={{ color: '#F2F2F2', fontWeight: 600 }}>últimas 24 horas</span>. Para consultas em datas anteriores, utilize o modo{' '}
         <span style={{ color: '#F2F2F2', fontWeight: 600 }}>Histórico</span>.
       </p>
     </div>
