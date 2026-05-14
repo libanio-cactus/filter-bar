@@ -36,20 +36,22 @@ function calcRangeForPreset(preset: RealtimePreset): TimeRange {
   return { start: hhmm(s), end }
 }
 
-function validateCustomRange(range: TimeRange): string | null {
+type ValidationError = { message: string; field: 'start' | 'end' }
+
+function validateCustomRange(range: TimeRange): ValidationError | null {
   const now = new Date()
   const currentMins = toMinutes(hhmm(now))
   const startMins = toMinutes(range.start)
   const endMins = toMinutes(range.end)
 
   if (startMins >= currentMins) {
-    return `O horário inicial não pode ser igual ou maior que o horário atual (${hhmm(now)})`
+    return { message: `O horário inicial não pode ser igual ou maior que o horário atual (${hhmm(now)})`, field: 'start' }
   }
   if (endMins > currentMins) {
-    return `O horário final não pode ser maior que o horário atual (${hhmm(now)}). Real time exibe dados de 00:00 até agora.`
+    return { message: `O horário final não pode ser maior que o horário atual (${hhmm(now)}). Real time exibe dados de 00:00 até agora.`, field: 'end' }
   }
   if (startMins >= endMins) {
-    return 'O horário inicial deve ser anterior ao horário final.'
+    return { message: 'O horário inicial deve ser anterior ao horário final.', field: 'start' }
   }
   return null
 }
@@ -111,64 +113,74 @@ export function RealtimeFields({
 
           <span style={{ color: '#2A2C38', fontSize: '18px', lineHeight: 1 }}>|</span>
 
-          <div style={{ position: 'relative' }}>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <div style={{ position: 'relative' }}>
               <TimeInput
                 value={customRange.start}
                 active={isCustom}
                 error={isCustom && !!error}
                 onChange={(v) => handleTimeChange('start', v)}
               />
-              <span style={{ color: '#555A66' }}>↔</span>
+              {isCustom && error?.field === 'start' && !tipDismissed && (
+                <ErrorTip message={error.message} onClose={() => setTipDismissed(true)} />
+              )}
+            </div>
+            <span style={{ color: '#555A66' }}>↔</span>
+            <div style={{ position: 'relative' }}>
               <TimeInput
                 value={customRange.end}
                 active={isCustom}
                 error={isCustom && !!error}
                 onChange={(v) => handleTimeChange('end', v)}
               />
+              {isCustom && error?.field === 'end' && !tipDismissed && (
+                <ErrorTip message={error.message} onClose={() => setTipDismissed(true)} />
+              )}
             </div>
-
-            {isCustom && error && !tipDismissed && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 6px)',
-                  left: 0,
-                  zIndex: 50,
-                  backgroundColor: '#1E2028',
-                  border: '1px solid rgba(229,57,53,0.4)',
-                  borderRadius: '8px',
-                  padding: '7px 10px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '6px',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E53935" strokeWidth="2.5" style={{ flexShrink: 0, marginTop: '1px' }}>
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <span style={{ fontSize: '11px', color: '#E57373', lineHeight: '1.4' }}>{error}</span>
-                <button
-                  type="button"
-                  onClick={() => setTipDismissed(true)}
-                  style={{ marginLeft: '6px', flexShrink: 0, color: '#555A66', lineHeight: 0, cursor: 'pointer', alignSelf: 'center' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#8C9099')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#555A66')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ErrorTip({ message, onClose }: { message: string; onClose: () => void }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 'calc(100% + 6px)',
+        left: 0,
+        zIndex: 50,
+        backgroundColor: '#1E2028',
+        border: '1px solid rgba(229,57,53,0.4)',
+        borderRadius: '8px',
+        padding: '7px 10px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '6px',
+        whiteSpace: 'nowrap',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+      }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E53935" strokeWidth="2.5" style={{ flexShrink: 0, marginTop: '1px' }}>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span style={{ fontSize: '11px', color: '#E57373', lineHeight: '1.4' }}>{message}</span>
+      <button
+        type="button"
+        onClick={onClose}
+        style={{ marginLeft: '6px', flexShrink: 0, color: '#555A66', lineHeight: 0, cursor: 'pointer', alignSelf: 'center' }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#8C9099')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#555A66')}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
     </div>
   )
 }
