@@ -76,26 +76,48 @@
 </ul>
 
 <h3>Sufixo (badge ao lado do horário)</h3>
-<p>Exibido junto ao campo de início para indicar o dia de referência:</p>
+<p>Exibido em ambos os campos via <code>getDateContext()</code>. A lógica distingue três cenários:</p>
 
+<p><strong>Campo fim:</strong></p>
 <table>
-  <tr><th>Condição</th><th>Sufixo exibido</th></tr>
-  <tr><td><code>start</code> em minutos &gt; <code>end</code> em minutos</td><td><code>ontem</code></td></tr>
-  <tr><td><code>start</code> em minutos ≤ <code>end</code> em minutos</td><td><code>hoje</code></td></tr>
+  <tr><th>Condição</th><th>Sufixo</th></tr>
+  <tr><td><code>endMins &gt; currentMins</code> E <code>startMins ≤ endMins</code></td><td><code>ontem</code> — mesmo dia, ambos no passado de ontem</td></tr>
+  <tr><td>demais casos</td><td><code>hoje</code></td></tr>
 </table>
 
-<p>O campo de <strong>fim</strong> exibe sempre <code>hoje</code>.</p>
-<p><strong>Lógica:</strong> quando o início é maior que o fim (ex: <code>23:30 → 01:00</code>), o sistema interpreta que o início é do dia anterior.</p>
+<p><strong>Campo início:</strong></p>
+<table>
+  <tr><th>Condição</th><th>Sufixo</th></tr>
+  <tr><td><code>endIsYesterday === true</code></td><td><code>ontem</code> — forçado junto com o fim (mesmo dia)</td></tr>
+  <tr><td><code>startMins &gt; endMins</code> (cross-midnight)</td><td><code>ontem</code> — início de ontem, fim de hoje</td></tr>
+  <tr><td>demais casos</td><td><code>hoje</code></td></tr>
+</table>
+
+<p><strong>Cenários completos (agora = 01:00):</strong></p>
+<table>
+  <tr><th>Situação</th><th>Start</th><th>End</th><th>Sufixo início</th><th>Sufixo fim</th></tr>
+  <tr><td>Mesmo dia no passado</td><td>22:30</td><td>23:40</td><td>ontem</td><td>ontem</td></tr>
+  <tr><td>Cross-midnight concluído</td><td>23:00</td><td>00:30</td><td>ontem</td><td>hoje</td></tr>
+  <tr><td>Cross-midnight com fim futuro</td><td>23:13</td><td>01:55</td><td>ontem</td><td>hoje + erro</td></tr>
+  <tr><td>Intervalo só hoje</td><td>08:00</td><td>10:30</td><td>hoje</td><td>hoje</td></tr>
+</table>
 
 <hr>
 
 <h2>4. Validações (somente no modo Custom)</h2>
 <p>As validações só são executadas quando o preset é <code>'custom'</code>. No modo preset, não há validação.</p>
 
-<h3>Regra 1 — Fim no futuro</h3>
-<pre>endMins &gt; currentMins → erro no campo "fim"</pre>
+<h3>Regra 1a — Cross-midnight com fim ainda no futuro</h3>
+<pre>endInFuture === true &amp;&amp; endIsYesterday === false → erro no campo "fim"</pre>
+<p>Ocorre quando <code>startMins &gt; endMins</code> (intenção cross-midnight) mas o horário de fim ainda não chegou hoje.</p>
+<p><em>Exemplo: agora 01:30, entrada 23:13 → 01:55. O fim (01:55) está no futuro e como start &gt; end, o componente não assume "ambos ontem".</em></p>
 <p>Mensagem: <em>"O horário final não pode ser maior que o horário atual (HH:MM). Real time exibe dados até agora."</em></p>
-<p>O horário atual (<code>HH:MM</code>) é inserido dinamicamente na mensagem no momento do erro.</p>
+<p>O horário atual é inserido dinamicamente na mensagem.</p>
+
+<h3>Regra 1b — Intervalo invertido no mesmo dia (ambos ontem)</h3>
+<pre>endIsYesterday === true &amp;&amp; startMins &gt; endMins → erro no campo "início"</pre>
+<p>Ocorre quando ambos seriam "ontem" mas o início é posterior ao fim — intervalo sem sentido no mesmo dia.</p>
+<p>Mensagem: <em>"Intervalo inválido: o horário inicial não pode ser posterior ao final."</em></p>
 
 <h3>Regra 2 — Início igual ao fim</h3>
 <pre>startMins === endMins → erro no campo "início"</pre>

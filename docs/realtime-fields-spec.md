@@ -50,24 +50,31 @@ Ativado automaticamente quando o usuário edita qualquer campo de hora manualmen
 
 ### Sufixo (badge ao lado do horário)
 
-Exibido em ambos os campos para indicar o dia de referência. A lógica usa `getDateContext()`:
+Exibido em ambos os campos via `getDateContext()`. A lógica distingue três cenários:
 
-**Campo fim:**
-
-| Condição | Sufixo |
-|----------|--------|
-| `endMins > currentMins` (fim no futuro) | `ontem` |
-| `endMins ≤ currentMins` | `hoje` |
-
-**Campo início:**
+**Campo fim (`endSuffix`):**
 
 | Condição | Sufixo |
 |----------|--------|
-| `endIsYesterday === true` | `ontem` (forçado — mesmo dia que o fim) |
-| `startMins > endMins` (cruza meia-noite) | `ontem` |
+| `endMins > currentMins` E `startMins ≤ endMins` | `ontem` — mesmo dia, ambos no passado de ontem |
 | demais casos | `hoje` |
 
-**Regra central:** quando o fim cai no futuro, o componente o interpreta automaticamente como ontem — sem erro. O início é forçado para ontem junto, garantindo que os dois fiquem no mesmo dia.
+**Campo início (`startSuffix`):**
+
+| Condição | Sufixo |
+|----------|--------|
+| `endIsYesterday === true` | `ontem` — forçado junto com o fim (mesmo dia) |
+| `startMins > endMins` (cross-midnight) | `ontem` — início de ontem, fim de hoje |
+| demais casos | `hoje` |
+
+**Cenários completos:**
+
+| Situação (agora = 01:00) | Start | End | Sufixo início | Sufixo fim |
+|---|---|---|---|---|
+| Mesmo dia no passado | 22:30 | 23:40 | ontem | ontem |
+| Cross-midnight concluído | 23:00 | 00:30 | ontem | hoje |
+| Cross-midnight com fim futuro | 23:13 | 01:55 | ontem | hoje + erro |
+| Intervalo só hoje | 08:00 | 10:30 | hoje | hoje |
 
 ---
 
@@ -75,11 +82,23 @@ Exibido em ambos os campos para indicar o dia de referência. A lógica usa `get
 
 As validações só são executadas quando o preset é `'custom'`. No modo preset, não há validação.
 
-### Regra 1 — Intervalo invertido no mesmo dia (ontem)
+### Regra 1a — Cross-midnight com fim ainda no futuro
+```
+endInFuture === true && endIsYesterday === false → erro no campo "fim"
+```
+Ocorre quando `startMins > endMins` (intenção cross-midnight) mas o horário de fim ainda não chegou hoje.
+
+Exemplo: agora `01:30`, entrada `23:13 → 01:55`. O fim (01:55) está no futuro, e como `start > end`, o componente não pode assumir "ambos ontem" — mantém o erro original.
+
+Mensagem: *"O horário final não pode ser maior que o horário atual (HH:MM). Real time exibe dados até agora."*
+
+O horário atual é inserido dinamicamente na mensagem.
+
+### Regra 1b — Intervalo invertido no mesmo dia (ambos ontem)
 ```
 endIsYesterday === true && startMins > endMins → erro no campo "início"
 ```
-Ocorre quando o fim está no futuro (interpretado como ontem) **e** o início, em minutos, é posterior ao fim — criando um intervalo onde o início viria depois do fim no mesmo dia.
+Ocorre quando `startMins ≤ endMins` seria esperado para "ambos ontem", mas o início é posterior ao fim — intervalo sem sentido no mesmo dia.
 
 Mensagem: *"Intervalo inválido: o horário inicial não pode ser posterior ao final."*
 
