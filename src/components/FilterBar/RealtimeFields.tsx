@@ -42,14 +42,33 @@ function calcRangeForPreset(preset: RealtimePreset): TimeRange {
 
 type ValidationError = { message: string; field: 'start' | 'end' }
 
-function validateCustomRange(range: TimeRange): ValidationError | null {
+function getDateContext(range: TimeRange) {
   const now = new Date()
   const currentMins = toMinutes(hhmm(now))
   const startMins = toMinutes(range.start)
   const endMins = toMinutes(range.end)
+  const endInFuture = endMins > currentMins
+  // "Ambos ontem" só se for intervalo de mesmo dia (start ≤ end).
+  // Se start > end com fim no futuro, é cross-midnight com fim ainda não chegado —
+  // início fica ontem normalmente e fim continua "hoje" (validação avisa).
+  const endIsYesterday = endInFuture && startMins <= endMins
+  const startIsYesterday = endIsYesterday ? true : startMins > endMins
+  return { endIsYesterday, startIsYesterday, endInFuture }
+}
 
-  if (endMins > currentMins) {
+function validateCustomRange(range: TimeRange): ValidationError | null {
+  const now = new Date()
+  const startMins = toMinutes(range.start)
+  const endMins = toMinutes(range.end)
+  const { endIsYesterday, endInFuture } = getDateContext(range)
+
+  // Cross-midnight com fim ainda no futuro (ex: 23:13 → 01:55 quando agora são 01:30)
+  if (endInFuture && !endIsYesterday) {
     return { message: `O horário final não pode ser maior que o horário atual (${hhmm(now)}). Real time exibe dados até agora.`, field: 'end' }
+  }
+  // Mesmo dia (ambos ontem) mas início posterior ao fim → intervalo invertido
+  if (endIsYesterday && startMins > endMins) {
+    return { message: 'Intervalo inválido: o horário inicial não pode ser posterior ao final.', field: 'start' }
   }
   if (startMins === endMins) {
     return { message: 'O horário inicial e final não podem ser iguais.', field: 'start' }
@@ -68,9 +87,9 @@ export function RealtimeFields({
   const error = isCustom ? validateCustomRange(customRange) : null
   const [tipDismissed, setTipDismissed] = useState(false)
 
-  const startIsYesterday = toMinutes(customRange.start) > toMinutes(customRange.end)
+  const { startIsYesterday, endIsYesterday } = getDateContext(customRange)
   const startSuffix = startIsYesterday ? 'ontem' : 'hoje'
-  const endSuffix = 'hoje'
+  const endSuffix = endIsYesterday ? 'ontem' : 'hoje'
 
 
   useEffect(() => {

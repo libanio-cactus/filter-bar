@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; max-width: 800px; margin: 40px auto; line-height: 1.5; }
+  h1 { font-size: 18pt; font-weight: bold; margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 8px; }
+  h2 { font-size: 14pt; font-weight: bold; margin-top: 28px; color: #1a1a1a; }
+  h3 { font-size: 12pt; font-weight: bold; margin-top: 16px; color: #333; }
+  p { margin: 8px 0; }
+  code { font-family: "Courier New", monospace; font-size: 10pt; background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+  pre { font-family: "Courier New", monospace; font-size: 10pt; background: #f5f5f5; border: 1px solid #ddd; padding: 12px 16px; border-radius: 4px; line-height: 1.5; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th { background: #f0f0f0; font-weight: bold; text-align: left; padding: 8px 12px; border: 1px solid #ccc; }
+  td { padding: 7px 12px; border: 1px solid #ccc; }
+  tr:nth-child(even) td { background: #fafafa; }
+  ul { margin: 8px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
+  .subtitle { color: #555; font-size: 10pt; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Spec — Seleção de Horário Real Time</h1>
+<p class="subtitle">Componente: <code>RealtimeFields</code> + <code>TimeInput</code> &nbsp;|&nbsp; Contexto: FilterBar, modo Real time</p>
+
+<hr>
+
+<h2>1. Presets de intervalo</h2>
+<p>Cinco opções fixas, exibidas como pills:</p>
+
+<table>
+  <tr><th>Label</th><th>Valor interno</th><th>Intervalo calculado</th></tr>
+  <tr><td>1h</td><td><code>'1h'</code></td><td>Agora − 60 min → Agora</td></tr>
+  <tr><td>4h</td><td><code>'4h'</code></td><td>Agora − 240 min → Agora</td></tr>
+  <tr><td>8h</td><td><code>'8h'</code></td><td>Agora − 480 min → Agora</td></tr>
+  <tr><td>12h</td><td><code>'12h'</code></td><td>Agora − 720 min → Agora</td></tr>
+  <tr><td>Hoje</td><td><code>'hoje'</code></td><td>00:00 → Agora</td></tr>
+</table>
+
+<p><strong>Comportamento ao clicar num preset:</strong></p>
+<ul>
+  <li>O preset fica ativo (estado visual verde)</li>
+  <li>Os campos de hora são atualizados automaticamente com o intervalo calculado <strong>no momento do clique</strong> (usando <code>new Date()</code>)</li>
+  <li>O estado interno muda de <code>'custom'</code> para o valor do preset selecionado</li>
+</ul>
+<p><strong>Preset padrão:</strong> <code>1h</code></p>
+
+<hr>
+
+<h2>2. Modo Custom</h2>
+<p>Ativado automaticamente quando o usuário edita qualquer campo de hora manualmente.</p>
+<ul>
+  <li>O estado interno passa para <code>'custom'</code> — nenhum preset fica ativo</li>
+  <li>Os campos de hora passam a exibir o estado ativo (borda verde <code>rgba(168,214,42,0.45)</code>)</li>
+  <li>As validações (seção 4) entram em vigor</li>
+</ul>
+
+<hr>
+
+<h2>3. Campos de hora (TimeInput)</h2>
+
+<h3>Formato</h3>
+<ul>
+  <li><strong>Exibição e valor:</strong> <code>HH:MM</code> (24h, sem AM/PM)</li>
+  <li><strong>Placeholder:</strong> <code>HH:MM</code></li>
+  <li><strong>Máscara:</strong> apenas dígitos; <code>:</code> inserido automaticamente após os 2 primeiros dígitos</li>
+</ul>
+
+<h3>Entrada</h3>
+<ul>
+  <li>Texto livre com <code>inputMode="numeric"</code> — formata enquanto digita</li>
+  <li>Ao perder o foco com valor incompleto: reverte para o último valor válido</li>
+  <li>Botão de ícone (relógio) abre o picker nativo <code>&lt;input type="time"&gt;</code> como alternativa</li>
+</ul>
+
+<h3>Sufixo (badge ao lado do horário)</h3>
+<p>Exibido junto ao campo de início para indicar o dia de referência:</p>
+
+<table>
+  <tr><th>Condição</th><th>Sufixo exibido</th></tr>
+  <tr><td><code>start</code> em minutos &gt; <code>end</code> em minutos</td><td><code>ontem</code></td></tr>
+  <tr><td><code>start</code> em minutos ≤ <code>end</code> em minutos</td><td><code>hoje</code></td></tr>
+</table>
+
+<p>O campo de <strong>fim</strong> exibe sempre <code>hoje</code>.</p>
+<p><strong>Lógica:</strong> quando o início é maior que o fim (ex: <code>23:30 → 01:00</code>), o sistema interpreta que o início é do dia anterior.</p>
+
+<hr>
+
+<h2>4. Validações (somente no modo Custom)</h2>
+<p>As validações só são executadas quando o preset é <code>'custom'</code>. No modo preset, não há validação.</p>
+
+<h3>Regra 1 — Fim no futuro</h3>
+<pre>endMins &gt; currentMins → erro no campo "fim"</pre>
+<p>Mensagem: <em>"O horário final não pode ser maior que o horário atual (HH:MM). Real time exibe dados até agora."</em></p>
+<p>O horário atual (<code>HH:MM</code>) é inserido dinamicamente na mensagem no momento do erro.</p>
+
+<h3>Regra 2 — Início igual ao fim</h3>
+<pre>startMins === endMins → erro no campo "início"</pre>
+<p>Mensagem: <em>"O horário inicial e final não podem ser iguais."</em></p>
+
+<h3>Prioridade</h3>
+<p>A Regra 1 é verificada primeiro. Se o fim já está no futuro, a Regra 2 não é avaliada.</p>
+
+<hr>
+
+<h2>5. Exibição do erro (ErrorTip)</h2>
+<p>Tooltip posicionada abaixo do campo com erro:</p>
+<ul>
+  <li><strong>Aparece:</strong> imediatamente após a validação falhar</li>
+  <li><strong>Desaparece:</strong> ao clicar no X da tooltip — o usuário descarta manualmente</li>
+  <li><strong>Reaparece:</strong> se o usuário alterar os campos novamente (estado <code>tipDismissed</code> é resetado a cada mudança de hora)</li>
+  <li><strong>Cor:</strong> borda vermelha <code>rgba(229,57,53,0.4)</code>, texto <code>#E57373</code></li>
+  <li>Apenas <strong>um</strong> erro é exibido por vez (campo de início ou de fim, nunca os dois)</li>
+</ul>
+
+<hr>
+
+<h2>6. Impacto no botão Aplicar</h2>
+<p>O botão Aplicar fica <strong>desabilitado</strong> (<code>canApply = false</code>) quando:</p>
+<ul>
+  <li><code>preset === 'custom'</code> <strong>E</strong> há erro de validação (<code>realtimeValid === false</code>)</li>
+</ul>
+<p>O botão fica habilitado quando:</p>
+<ul>
+  <li>Qualquer preset fixo está ativo (1h, 4h, 8h, 12h, hoje) — sem validação</li>
+  <li><strong>OU</strong> o preset é <code>'custom'</code> e não há erro de validação</li>
+</ul>
+
+<hr>
+
+<h2>7. Estados visuais dos campos de hora</h2>
+
+<table>
+  <tr><th>Estado</th><th>Borda</th></tr>
+  <tr><td>Repouso (preset ativo, sem foco)</td><td><code>#2A2C38</code></td></tr>
+  <tr><td>Custom ativo (sem foco no campo)</td><td><code>rgba(168,214,42,0.45)</code> — verde sutil</td></tr>
+  <tr><td>Com foco no campo</td><td><code>rgba(168,214,42,0.45)</code> — verde sutil</td></tr>
+  <tr><td>Com erro</td><td><code>rgba(229,57,53,0.6)</code> — vermelho</td></tr>
+</table>
+<p>Transição: <code>border-color 0.15s</code></p>
+
+<hr>
+
+<h2>8. O que é emitido no <code>onFilter</code></h2>
+<p>Quando o usuário clica em Aplicar, o valor enviado é:</p>
+
+<pre>// Preset fixo ativo:
+{
+  mode: 'realtime',
+  realtimePreset: '1h' | '4h' | '8h' | '12h' | 'hoje',
+  realtimeCustomRange: { start: 'HH:MM', end: 'HH:MM' }
+}
+
+// Custom válido:
+{
+  mode: 'realtime',
+  realtimePreset: 'custom',
+  realtimeCustomRange: { start: 'HH:MM', end: 'HH:MM' }
+}</pre>
+
+<hr>
+
+<h2>9. Limitações conhecidas</h2>
+<ul>
+  <li><strong>Sem cruzamento de meia-noite validado no preset:</strong> ao clicar em "4h" às 02:00, o <code>start</code> pode resultar em horário do dia anterior. A lógica usa <code>Date</code> e o resultado é correto, mas a validação do sufixo "ontem/hoje" é baseada em comparação de minutos, o que funciona corretamente para esse caso.</li>
+  <li><strong>Fim sempre "hoje":</strong> o sufixo do campo de fim é fixo <code>'hoje'</code>. Se no futuro houver suporte a intervalos que cruzam datas, isso precisará ser revisado.</li>
+  <li><strong>Sem limite mínimo no intervalo:</strong> não há validação de intervalo mínimo. Qualquer intervalo positivo (início ≠ fim, fim não no futuro) é válido.</li>
+</ul>
+
+</body>
+</html>
