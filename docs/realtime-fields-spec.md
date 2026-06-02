@@ -109,7 +109,7 @@ startMins === endMins → erro no campo "início"
 Mensagem: *"O horário inicial e final não podem ser iguais."*
 
 ### Prioridade
-A Regra 1 é verificada primeiro. Se o fim já está no futuro, a Regra 2 não é avaliada.
+Regra 1a é verificada primeiro. Se o fim está no futuro em cenário cross-midnight, o erro é emitido antes de qualquer outra checagem. Regra 1b só é avaliada se `endIsYesterday === true`. Regra 2 só é avaliada se nenhuma Regra 1 disparou.
 
 ---
 
@@ -173,6 +173,5 @@ Quando o usuário clica em Aplicar, o valor enviado é:
 
 ## 9. Limitações conhecidas
 
-- **Sem cruzamento de meia-noite validado no preset:** ao clicar em "4h" às 02:00, o `start` pode ser negativo em minutos (`-120`). A lógica de cálculo usa `Date` e o resultado é horário correto, mas a validação de "ontem/hoje" do sufixo é baseada em comparação simples de minutos, o que funciona corretamente para esse caso.
-- **Fim sempre "hoje":** o sufixo do campo de fim é fixo `'hoje'`. Se no futuro houver suporte a intervalos que cruzam datas, isso precisará ser revisado.
-- **Sem limite mínimo no início:** não há validação de intervalo mínimo (ex: impedir `start === end - 1 min`). Qualquer intervalo positivo é válido.
+- **Sem cruzamento de meia-noite validado no preset:** ao clicar em "4h" às 02:00, o `start` calculado pode resultar em horário de ontem. A lógica usa `Date` e o resultado é correto, mas `getDateContext` não é chamado no modo preset — os sufixos de preset são calculados diretamente por `startMins > endMins`, o que funciona para esse caso.
+- **Sem limite mínimo no intervalo:** não há validação de intervalo mínimo. Qualquer intervalo positivo (início ≠ fim, sem erro de regra) é válido.
